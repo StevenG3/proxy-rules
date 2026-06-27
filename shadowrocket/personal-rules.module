@@ -1,0 +1,15 @@
+#!name=Personal Proxy Rules
+#!desc=Personal Shadowrocket rules kept outside the upstream sr_top500_banlist_ad.conf.
+#!author=StevenG3
+#!homepage=https://github.com/StevenG3/proxy-rules
+
+[Rule]
+# Replace PROXY with the exact policy/group name used in your Shadowrocket config.
+# StevenG3/proxy-rules examples:
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
+
+# Add your own persistent rules below. These will not be overwritten when the main conf updates.
+# DOMAIN-SUFFIX,example.com,PROXY
+# DOMAIN-KEYWORD,example-keyword,PROXY
+# DOMAIN-SUFFIX,example.cn,DIRECT

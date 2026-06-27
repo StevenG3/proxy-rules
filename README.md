@@ -4,6 +4,16 @@ Personal rule-set collection for proxy clients.
 
 ## Shadowrocket
 
+### Personal Module
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/personal-rules.module
+```
+
+Use this as a Shadowrocket module to keep personal rules outside externally maintained config files such as `sr_top500_banlist_ad.conf`.
+
 ### Claude / Anthropic
 
 Raw URL:
