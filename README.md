@@ -14,6 +14,8 @@ https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/persona
 
 Use this as a Shadowrocket module to keep personal rules outside externally maintained config files such as `sr_top500_banlist_ad.conf`.
 
+The module includes Apple services as `DIRECT` by default, plus selected services that should use your proxy policy group.
+
 ### Claude / Anthropic
 
 Raw URL:

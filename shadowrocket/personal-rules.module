@@ -6,6 +6,7 @@
 [Rule]
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,DIRECT
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
 
