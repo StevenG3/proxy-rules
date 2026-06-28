@@ -14,3 +14,9 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 # DOMAIN-SUFFIX,example.com,PROXY
 # DOMAIN-KEYWORD,example-keyword,PROXY
 # DOMAIN-SUFFIX,example.cn,DIRECT
+
+# Override the upstream sr_top500_banlist_ad.conf tail (FINAL,DIRECT and no GEOIP).
+# Module rules take priority over the conf; domain rules above still match first
+# (ad-block REJECT keeps working), then GEOIP, then FINAL is auto-moved to the very end.
+GEOIP,CN,DIRECT
+FINAL,PROXY
