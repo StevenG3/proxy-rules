@@ -6,7 +6,7 @@
 [Rule]
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
-RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,DIRECT
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
 
@@ -18,5 +18,10 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 # Override the upstream sr_top500_banlist_ad.conf tail (FINAL,DIRECT and no GEOIP).
 # Module rules take priority over the conf; domain rules above still match first
 # (ad-block REJECT keeps working), then GEOIP, then FINAL is auto-moved to the very end.
+#
+# China domains go DIRECT by name (resolution-independent), because GEOIP fails on
+# geo-aware CDNs / fake-IP DNS that hand out non-CN or placeholder IPs.
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMax/ChinaMax_Domain.list,DIRECT
+DOMAIN-SUFFIX,yspapp.cn,DIRECT
 GEOIP,CN,DIRECT
 FINAL,PROXY
