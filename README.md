@@ -47,3 +47,14 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 ```
 
 Replace `PROXY` with the policy or proxy group name used in your Shadowrocket configuration.
+
+### NOL Ticket Direct
+
+Shadowrocket module URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/nol-ticket-direct.sgmodule
+```
+
+Import this URL from Shadowrocket's Modules screen. The module routes the
+confirmed NOL ticketing and payment domains through `DIRECT`.
