@@ -1,0 +1,6 @@
+#!name=NOL Ticket Direct
+#!desc=Direct routing for NOL ticketing and payment domains
+
+[Rule]
+DOMAIN,secureapi.ext.eximbay.com,DIRECT
+DOMAIN,gpoticket.globalinterpark.com,DIRECT
