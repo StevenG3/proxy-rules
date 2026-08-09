@@ -3,7 +3,18 @@
 #!author=StevenG3
 #!homepage=https://github.com/StevenG3/proxy-rules
 
+[General]
+# UDP 命中不支持转发的节点时回退直连，避免 VoIP 媒体流被 REJECT 掐断。
+udp-policy-not-supported-behaviour = DIRECT
+
 [Rule]
+# ── 必须置顶 ───────────────────────────────────────────────────────────
+# 来电修复：运营商 IMS/VoWiFi、APNs 推送、iMessage/FaceTime 注册与媒体流
+# 一律直连。这些必须排在 apple.list 之前 —— apple.list 走 PROXY，而它包含
+# push.apple.com 与 17.x 的 APNs 网段，APNs 经代理转发会造成推送延迟或掉线，
+# 表现为来电不响铃且没有未接来电记录。
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-direct.list,DIRECT
+
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY

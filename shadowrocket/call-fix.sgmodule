@@ -1,0 +1,44 @@
+#!name=Incoming Call Fix (VoWiFi / APNs / VoIP)
+#!desc=修复开启 Shadowrocket 后部分来电打不进来、且无通话记录的问题。放行运营商 IMS/VoWiFi、APNs 推送与 FaceTime 媒体流。
+#!author=StevenG3
+#!homepage=https://github.com/StevenG3/proxy-rules
+
+# ─────────────────────────────────────────────────────────────────────────
+# 单独导入本模块即可，与 personal-rules.module 并用时请把本模块排在更前面
+# （配置 > 模块 > 右上角 ··· > 重新排序）。
+#
+# 注意：本模块只能修正"流量进入隧道后走错策略"。若「设置 > 隧道 > 包括所有
+# 网络」中的开关把蜂窝服务 / APNs 整体捕获进隧道，则任何规则都不会生效，
+# 必须先手动关闭那些开关，详见 README。
+# ─────────────────────────────────────────────────────────────────────────
+
+[General]
+# 当 UDP 流量匹配到不支持 UDP 转发的节点时，回退为直连而不是拒绝。
+# 默认值 REJECT 会直接掐掉 VoIP 的媒体流，导致来电无声或干脆不响铃。
+# 代价：命中代理策略的 UDP（如 QUIC）会以本机真实 IP 直连，介意者可删掉本行。
+udp-policy-not-supported-behaviour = DIRECT
+
+# ── TUN 旁路路由（按需启用）────────────────────────────────────────────
+# Shadowrocket 的 TUN 接口只处理 TCP，VoWiFi 依赖的 ESP（IP 协议号 50）
+# 无法被转发。把运营商 ePDG 的 IP 段列进来可让其完全绕开隧道。
+#
+# ⚠️ 模块中的 [General] 会「覆盖」配置文件中的同名项，不是追加。因此下方
+#    已包含 Shadowrocket 的默认私有网段，启用时请勿删减，只在末尾追加你
+#    自己运营商的 ePDG 网段。
+#
+# ePDG 的 IP 因运营商而异，无法预置。查法：临时关闭 Shadowrocket，在
+# 「设置 > 蜂窝网络 > Wi-Fi 通话」开启的状态下，用抓包或运营商文档确认
+# epdg.epc.mnc<MNC>.mcc<MCC>.pub.3gppnetwork.org 解析到的地址段。
+#
+# tun-excluded-routes = 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.0.2.0/24, 192.88.99.0/24, 192.168.0.0/16, 198.51.100.0/24, 203.0.113.0/24, 224.0.0.0/4, 255.255.255.255/32, 239.255.255.250/32
+
+[Host]
+# ePDG / IMS 域名通常只有运营商下发的 DNS 能解析，公共 DoH 会解析失败。
+# 若确认是 VoWiFi 注册不上，可启用下行改用系统 DNS 解析。
+# 该写法未见于官方文档，属兼容性尝试，启用后若 DNS 异常请立即注释掉。
+#
+# *.pub.3gppnetwork.org = server:system
+
+[Rule]
+# 必须置顶：规则自上而下匹配，先匹配者胜出。
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-direct.list,DIRECT
