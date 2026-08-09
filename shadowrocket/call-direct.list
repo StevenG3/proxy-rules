@@ -2,10 +2,12 @@
 # AUTHOR: Steven
 # UPDATED: 2026-08-09
 # DESCRIPTION: 修复开启 Shadowrocket 后来电打不进来、且无通话记录的问题。
-#              涵盖三条来电通路中会被隧道破坏的部分：
-#                1. 运营商 IMS / VoWiFi（Wi-Fi 通话）注册
-#                2. APNs 推送（决定 VoIP 类 App 是否响铃）
-#                3. iMessage / FaceTime 的 IDS 注册与媒体流
+#              按成因可能性从高到低排列：
+#                1. APNs 推送（决定 VoIP 类 App 是否响铃）—— 大陆用户首要成因
+#                2. iMessage / FaceTime 的 IDS 注册
+#                3. FaceTime 媒体流
+#                4. 微信语音 / 视频通话
+#                5. 运营商 IMS / VoWiFi —— 仅港澳台及漫游相关，大陆卡不适用
 #
 #              使用方式：作为 RULE-SET 以 DIRECT 策略引用，且必须放在
 #              其他 Apple / 代理规则之前（规则自上而下匹配，先匹配者胜出）。
@@ -16,25 +18,17 @@
 #      「包括所有网络」整体捕获的，规则不生效，必须去关 App 的隧道开关，
 #      详见 README 的「必须手动关闭的开关」一节。
 
-# ── 运营商 IMS / VoWiFi / ePDG ──────────────────────────────────────────
-# ePDG 域名格式为 epdg.epc.mnc<MNC>.mcc<MCC>.pub.3gppnetwork.org，
-# IMS、MMS（彩信）、可视语音信箱的接入点域名同样挂在 3gppnetwork.org 下。
-# 这些域名通常只有运营商下发的 DNS 能解析，务必直连。
-DOMAIN-SUFFIX,3gppnetwork.org
-DOMAIN-KEYWORD,epdg
-DOMAIN-KEYWORD,vowifi
-
-# ── IKEv2 / IPsec NAT-T ────────────────────────────────────────────────
-# VoWiFi 通过 IKEv2 与 ePDG 建链：UDP 500（IKE）、UDP 4500（NAT-T）。
-# 承载语音的 ESP（IP 协议号 50）既非 TCP 也非 UDP，Shadowrocket 的 TUN
-# 接口只处理 TCP，无法转发，因此必须让它绕开隧道（见 tun-excluded-routes）。
-DST-PORT,500
-DST-PORT,4500
-
-# ── APNs — Apple 推送 ──────────────────────────────────────────────────
-# 微信、WhatsApp、Telegram、FaceTime 的来电全部依赖 APNs 长连接唤醒。
-# 该连接一旦经由代理转发，容易出现推送延迟或静默掉线，表现就是
-# "电话打不进来、事后也没有未接记录"。
+# ══════════════════════════════════════════════════════════════════════
+# 1. APNs — Apple 推送（大陆用户的首要成因）
+# ══════════════════════════════════════════════════════════════════════
+# iOS 上所有第三方 App 的远程推送都只经由 APNs 送达，微信、Telegram、
+# WhatsApp、FaceTime 的来电全部依赖这条长连接唤醒。一旦经代理转发，
+# 容易出现推送延迟或静默掉线，表现就是"电话打不进来、事后也没有未接记录"。
+#
+# 直连 APNs 不会影响 Telegram / X 的推送：推送路径是
+#   Telegram 服务器 → Apple APNs → 你的设备（本条直连）
+# 而 Telegram 自己的 MTProto 连接（上报 device token、收发消息）走的是
+# 另一条链路，仍然由代理规则接管，两者互不干扰。
 DOMAIN-SUFFIX,push.apple.com
 DOMAIN,gateway.push.apple.com
 DOMAIN,init-p01st.push.apple.com
@@ -51,12 +45,16 @@ IP-CIDR6,2403:300:a42::/48,no-resolve
 IP-CIDR6,2403:300:a51::/48,no-resolve
 IP-CIDR6,2a01:b740:a42::/48,no-resolve
 
-# ── iMessage / FaceTime 注册（IDS）─────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════
+# 2. iMessage / FaceTime 注册（IDS）
+# ══════════════════════════════════════════════════════════════════════
 # IDS 注册失败会导致 FaceTime 来电不响铃。
 DOMAIN-SUFFIX,ess.apple.com
 DOMAIN,identity.apple.com
 
-# ── FaceTime 媒体流（STUN / RTP，UDP 16384–16403）──────────────────────
+# ══════════════════════════════════════════════════════════════════════
+# 3. FaceTime 媒体流（STUN / RTP，UDP 16384–16403）
+# ══════════════════════════════════════════════════════════════════════
 # 逐条列出而非使用区间写法：Shadowrocket 官方文档中 DST-PORT 仅给出单端口
 # 示例，端口区间语法未有明确说明，逐条列出可确保生效。
 DST-PORT,16384
@@ -80,7 +78,50 @@ DST-PORT,16401
 DST-PORT,16402
 DST-PORT,16403
 
-# ── 微信语音 / 视频通话 ────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════
+# 4. 微信语音 / 视频通话
+# ══════════════════════════════════════════════════════════════════════
 # ChinaMax 规则集通常也会覆盖，此处显式前置以保证匹配顺序。
 DOMAIN-SUFFIX,weixin.qq.com
 DOMAIN-SUFFIX,wechat.com
+
+# ══════════════════════════════════════════════════════════════════════
+# 5. 运营商 IMS / VoWiFi / ePDG（仅港澳台及漫游相关，大陆卡用不到）
+# ══════════════════════════════════════════════════════════════════════
+# 经实测，中国移动 / 联通 / 电信 / 广电均未在公共 3GPP DNS 中发布 ePDG
+# 地址，即大陆运营商不提供 Wi-Fi 通话，大陆卡的 iPhone 里没有该开关。
+# 因此使用大陆卡时，VoWiFi 不可能是来电打不进来的原因。
+# 本节仅对港澳台卡、境外卡或漫游场景有意义。
+# 自查命令：python3 tools/lookup-epdg.py 460-00 454-12
+#
+# ePDG 域名格式：epdg.epc.mnc<MNC>.mcc<MCC>.pub.3gppnetwork.org
+# IMS、MMS（彩信）、可视语音信箱的接入点域名同样挂在 3gppnetwork.org 下。
+DOMAIN-SUFFIX,3gppnetwork.org
+DOMAIN-KEYWORD,epdg
+DOMAIN-KEYWORD,vowifi
+
+# IKEv2 / IPsec NAT-T：UDP 500（IKE）、UDP 4500（NAT-T）。
+# 承载语音的 ESP（IP 协议号 50）既非 TCP 也非 UDP，而 Shadowrocket 的 TUN
+# 接口只处理 TCP，无法转发，因此还需配合 tun-excluded-routes 让它绕开隧道。
+DST-PORT,500
+DST-PORT,4500
+
+# 实测于 2026-08-09 的 ePDG 地址段（来源为公共 3GPP DNS 解析结果，
+# 非运营商官方文档，可能随时变更；用 tools/lookup-epdg.py 复核）。
+# 香港
+IP-CIDR,120.88.224.0/24,no-resolve
+IP-CIDR,120.88.240.0/24,no-resolve
+IP-CIDR,180.219.134.0/24,no-resolve
+IP-CIDR,182.239.86.0/24,no-resolve
+IP-CIDR,182.239.118.0/24,no-resolve
+# 台湾
+IP-CIDR,221.120.20.0/24,no-resolve
+IP-CIDR,221.120.23.0/24,no-resolve
+IP-CIDR,175.96.62.0/24,no-resolve
+IP-CIDR,175.96.63.0/24,no-resolve
+# 日本 au KDDI
+IP-CIDR,27.86.78.0/24,no-resolve
+IP-CIDR6,2001:268:f605::/48,no-resolve
+IP-CIDR6,2001:268:f638::/48,no-resolve
+# 美国 AT&T（T-Mobile 的 ePDG 为大池轮询，未收录）
+IP-CIDR,107.122.31.0/24,no-resolve
