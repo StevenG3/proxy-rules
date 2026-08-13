@@ -1,0 +1,38 @@
+# NAME: Google Voice
+# AUTHOR: Steven
+# UPDATED: 2026-08-09
+# DESCRIPTION: Google Voice 及其依赖的 Google 账号 / 信令服务。
+#
+#              以 PROXY 引用，且必须放在 GEOIP,CN 之前：
+#                RULE-SET,<本文件 URL>,PROXY
+#
+#              为什么必须按域名匹配、而不能依赖 GEOIP：
+#              GEOIP 规则需要先把域名解析成 IP 才能判断归属地，而国内 DNS
+#              对 google.com 的解析结果是被污染的。拿到污染 IP 后，GEOIP,CN
+#              可能误判为国内而走 DIRECT，随即被墙。域名规则不依赖解析结果，
+#              是唯一可靠的做法 —— 与本仓库对国内域名的处理思路一致。
+#
+#              注意：Google Voice 的通知本身由 APNs 送达，不在本规则集范围内。
+#              APNs 必须直连（见 call-direct.list），而本规则集保证 GV 能连上
+#              Google 服务器完成 token 注册与信令，Google 才会发出那条推送。
+#              两者缺一不可。
+
+# ── 核心域名 ───────────────────────────────────────────────────────────
+# 覆盖 voice.google.com、accounts.google.com、clients4/6.google.com 等
+DOMAIN-SUFFIX,google.com
+
+# Google Voice 的电话服务后端
+DOMAIN-SUFFIX,telephony.goog
+DOMAIN,voice.telephony.goog
+
+# ── API / 实时信令 ─────────────────────────────────────────────────────
+# signaler-pa 与 instantmessaging-pa 承载来电与短信的实时信令，
+# oauthaccountmanager 负责 token 刷新 —— 失败会导致服务端不再推送。
+DOMAIN-SUFFIX,googleapis.com
+
+# ── 静态资源 / 账号基础设施 ────────────────────────────────────────────
+DOMAIN-SUFFIX,gstatic.com
+DOMAIN-SUFFIX,googleusercontent.com
+DOMAIN-SUFFIX,gvt1.com
+DOMAIN-SUFFIX,gvt2.com
+DOMAIN-SUFFIX,withgoogle.com

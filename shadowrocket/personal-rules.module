@@ -18,6 +18,7 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
 
@@ -32,6 +33,11 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 #
 # China domains go DIRECT by name (resolution-independent), because GEOIP fails on
 # geo-aware CDNs / fake-IP DNS that hand out non-CN or placeholder IPs.
+#
+# The same reasoning applies in reverse: overseas services must be matched by name
+# ABOVE this line, or GEOIP,CN decides their fate using a polluted local lookup.
+# google-voice.list exists for exactly that reason — without it, voice.google.com
+# fell through to GEOIP,CN and could be sent DIRECT into the firewall.
 RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMax/ChinaMax_Domain.list,DIRECT
 DOMAIN-SUFFIX,yspapp.cn,DIRECT
 GEOIP,CN,DIRECT

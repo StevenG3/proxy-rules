@@ -180,6 +180,47 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 **走 VoLTE 的蜂窝来电本就不受影响**，测试时应当用微信 / Telegram 等
 App 内语音来电来验证。
 
+### Google Voice
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list
+```
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
+```
+
+**必须放在 `GEOIP,CN` 之前**，`personal-rules.module` 中已如此排列。
+
+#### 收不到 Google Voice 通知的两层原因
+
+GV 的通知需要两条独立的链路同时成立，缺一不可：
+
+```text
+① GV 连上 Google 服务器（注册/刷新 APNs token、维持信令）—— 必须走代理
+② Google → Apple APNs → 你的设备 —— 必须直连且稳定
+```
+
+**第 ① 层：GEOIP 误判。** 若规则里没有显式的 Google 域名规则，
+`voice.google.com` 会一路落到 `GEOIP,CN`。而 GEOIP 必须先把域名解析成 IP
+才能判断归属地，国内 DNS 对 `google.com` 的解析结果是被污染的——判成 CN
+就走 DIRECT，直接撞墙。GV 连不上服务器，Google 根本不会发出那条推送。
+域名规则不依赖解析结果，是唯一可靠的解法。
+
+**第 ② 层：APNs 被塞进隧道。** 见上文 [Incoming Call Fix](#incoming-call-fix)，
+`设置 > 隧道 > 包括 APNs` 必须关闭。GV 的通知与微信、Telegram 的来电走的是
+同一条 APNs 通道，同一个开关同时影响它们。
+
+#### 其他注意事项
+
+* **节点建议固定在美国。** GV 对账号 IP 的地理位置敏感，落地国家频繁跳变
+  可能触发风控使会话失效。
+* 先排除非网络因素：iOS `设置 > 通知 > Google Voice` 是否允许通知、是否被
+  专注模式拦截、GV App 内 `设置 > 请勿打扰` 是否开启、以及 GV 内消息与来电的
+  通知开关是否分别打开。
+
 ### Claude / Anthropic
 
 Raw URL:
