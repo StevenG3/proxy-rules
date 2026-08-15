@@ -3,10 +3,29 @@
 #!author=StevenG3
 #!homepage=https://github.com/StevenG3/proxy-rules
 
+[General]
+# UDP 命中不支持转发的节点时回退直连，避免 VoIP 媒体流被 REJECT 掐断。
+udp-policy-not-supported-behaviour = DIRECT
+
+# 上一行有个副作用：网站的 HTTP/3 走 QUIC（UDP 443），若节点不支持 UDP 转发，
+# 这些请求会按上述回退策略以真实 IP 直连 —— 即"命中了 PROXY 规则却没走代理"。
+# all-proxy 只对走代理的连接阻断 QUIC，迫使其回落到 TCP 上的 HTTP/2 正常代理；
+# 直连连接不受干预，因此不影响国内站点。
+block-quic = all-proxy
+
 [Rule]
+# ── 必须置顶 ───────────────────────────────────────────────────────────
+# 来电修复：运营商 IMS/VoWiFi、APNs 推送、iMessage/FaceTime 注册与媒体流
+# 一律直连。这些必须排在 apple.list 之前 —— apple.list 走 PROXY，而它包含
+# push.apple.com 与 17.x 的 APNs 网段，APNs 经代理转发会造成推送延迟或掉线，
+# 表现为来电不响铃且没有未接来电记录。
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-direct.list,DIRECT
+
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
 
@@ -21,6 +40,11 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 #
 # China domains go DIRECT by name (resolution-independent), because GEOIP fails on
 # geo-aware CDNs / fake-IP DNS that hand out non-CN or placeholder IPs.
+#
+# The same reasoning applies in reverse: overseas services must be matched by name
+# ABOVE this line, or GEOIP,CN decides their fate using a polluted local lookup.
+# google-voice.list exists for exactly that reason — without it, voice.google.com
+# fell through to GEOIP,CN and could be sent DIRECT into the firewall.
 RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMax/ChinaMax_Domain.list,DIRECT
 DOMAIN-SUFFIX,yspapp.cn,DIRECT
 GEOIP,CN,DIRECT

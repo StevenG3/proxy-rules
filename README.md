@@ -14,7 +14,274 @@ https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/persona
 
 Use this as a Shadowrocket module to keep personal rules outside externally maintained config files such as `sr_top500_banlist_ad.conf`.
 
-The module includes Apple services as `DIRECT` by default, plus selected services that should use your proxy policy group.
+The module routes Apple services, Claude and Telegram through your proxy policy
+group, sends China domains and `GEOIP,CN` to `DIRECT`, and pins call-related
+traffic (IMS/VoWiFi, APNs, FaceTime) to `DIRECT` ahead of everything else — see
+[Incoming Call Fix](#incoming-call-fix) below.
+
+### Incoming Call Fix
+
+症状：开着 Shadowrocket 时部分电话打不进来，且事后**连未接来电记录都没有**。
+
+没有通话记录是关键线索——它说明呼叫根本没有到达设备，而不是到了没响。可能
+的成因按通路分三类：
+
+| 来电通路 | 是否受 Shadowrocket 影响 | 机制 |
+| --- | --- | --- |
+| App 内 VoIP（微信 / WhatsApp / Telegram / FaceTime） | **是，大陆用户的首要成因** | 依赖 APNs 长连接唤醒响铃。APNs 经代理转发时容易延迟或静默掉线，来电不响且不留记录。 |
+| 蜂窝网络下的 VoLTE / CS 通话 | **否** | 走运营商 IMS 专用 APN，不经过隧道。若这类电话也打不进来，问题在运营商侧（呼叫转移、防骚扰拦截、漫游），与本仓库无关。 |
+| Wi-Fi 通话 / VoWiFi / IMS | **仅港澳台 / 境外卡** | 通过 IKEv2 与运营商 ePDG 建链（UDP 500/4500），语音由 ESP（IP 协议号 50）承载。Shadowrocket 的 TUN 接口**只处理 TCP**，ESP 无法转发。但大陆运营商不提供该服务，见下。 |
+
+#### 大陆卡不必考虑 VoWiFi
+
+ePDG 的域名由 3GPP 规定为 `epdg.epc.mnc<MNC>.mcc<MCC>.pub.3gppnetwork.org`，
+其中 `pub` 即 public，可从公网 DNS 查询。实测（2026-08-09）结果：
+
+| 运营商 | ePDG |
+| --- | --- |
+| 中国移动 / 联通 / 电信 / 广电 | **未发布** |
+| CSL、PCCW 香港 | `120.88.224.5/6`、`120.88.240.5/6` |
+| SmarTone 香港 | `180.219.134.18` |
+| 中国移动香港 | `182.239.86.1`、`182.239.118.1` |
+| 中华电信 | `221.120.20.1`、`221.120.23.1/11` |
+| 台湾大哥大 | `175.96.62.1`、`175.96.63.1` |
+| au KDDI 日本 | `27.86.78.32/34/96/98` + IPv6 |
+
+大陆四家全部未发布，与"大陆运营商不提供 Wi-Fi 通话、大陆卡的 iPhone 里
+没有该开关"这一事实一致。**因此用大陆卡时 VoWiFi 不可能是成因**，无需为它
+配置 `tun-excluded-routes`。
+
+自行复核：
+
+```bash
+python3 tools/lookup-epdg.py            # 内置常见运营商
+python3 tools/lookup-epdg.py 460-00 454-12   # 指定 MCC-MNC
+```
+
+⚠️ `pub.3gppnetwork.org` 配了通配记录，未发布 ePDG 的运营商会返回
+`127.0.0.1` 而非 NXDOMAIN。不要把它当成真实网关地址填进规则。
+
+#### 设置 > 隧道
+
+这一页的每个开关都直接对应一个 iOS `NEVPNProtocol` 属性，在**规则匹配之前**
+由系统生效，模块和规则集都无法覆盖。
+
+| 开关 | 对应属性 | Apple 默认 | 说明 |
+| --- | --- | --- | --- |
+| 强制路由 | `enforceRoutes` | `false` | 开启后隧道路由压过系统路由表**以及 App 自身的接口绑定**。 |
+| 包括所有网络 | `includeAllNetworks` | `false` | 总开关。关闭时，下面三项全部失效。 |
+| 包括本地网络 | `excludeLocalNetworks` 取反 | iOS 下即"开" | 关掉可修复 AirDrop、AirPlay、CarPlay、NAS、打印机、HomeKit 摄像头。 |
+| 包括 APNs | `excludeAPNs` 取反 | **排除**（即"关"） | 打开等于把 Apple 推送塞进隧道，属反默认设置。 |
+| 包括蜂窝服务 | `excludeCellularServices` 取反 | **排除**（即"关"） | 对应 Wi-Fi 通话、MMS、SMS、可视语音信箱。 |
+
+**限制（Apple 文档明确列出）：**
+
+1. 后三项**只在「包括所有网络」开启时才有意义**，单独打开无效。
+2. 无论开关如何设置，系统**始终**把以下流量排除在隧道外，你控制不了：
+   * DHCP 等维持本地网络连接的控制平面流量
+   * Captive Portal（Wi-Fi 热点认证）流量
+   * **仅使用蜂窝网络的服务，例如 VoLTE**
+   * 与 Apple Watch 等配对设备的通信
+3. 「包括 APNs」「包括蜂窝服务」需要 **iOS 16.4+**。
+
+**第 2 条是关键**：VoLTE 由系统自动排除，因此**蜂窝语音来电永远不会受
+Shadowrocket 影响**。如果只有一部分电话打不进来，那条分界线就在这里——
+走 VoLTE 的正常，靠 APNs 唤醒的 App VoIP 来电出问题。
+
+**推荐设置**（最小改动，保留 `includeAllNetworks` 的防泄漏语义）：
+
+* **包括 APNs → 关**（恢复 Apple 默认，这是来电不响的直接成因）
+* **强制路由 → 关**（Apple 默认即为关）
+* 包括蜂窝服务 → 保持关
+* 包括本地网络 → 局域网设备/AirDrop 有问题时再关
+
+若仍不正常，再关闭「包括所有网络」总开关。代价是失去"VPN 断开即断网"的
+防泄漏保证，换取系统服务恢复正常。
+
+### 既要 Telegram / X 推送，又要能接电话
+
+结论：**这两者不冲突，而且不需要 TUN 模式。**
+
+关键在于 iOS 的推送机制——所有第三方 App 的远程推送都**只经由 APNs 送达**，
+没有例外。Telegram / X 的推送路径是：
+
+```text
+Telegram 服务器 ──► Apple APNs ──► 你的设备（一条直连长连接）
+```
+
+代理并不参与这一段。真正需要代理的是 **App 自己到自家服务器的连接**——
+用来上报 APNs device token、保持账号在线、点开通知后拉取内容。这条链路
+被墙时，服务器无从推送给你，于是表现为"不挂代理就收不到推送"。
+
+所以你需要的是"Telegram / X 的流量能走代理"，而不是"所有流量都进 TUN"。
+而 Shadowrocket 手册对两种代理类型的定义是：
+
+* **HTTP** —— 系统代理模式，对于不支持的程序**会交给 TUN 接管**网络连接
+* **None** —— TUN 模式，**全部**网络请求都将通过 TUN 接口处理
+
+也就是说 **HTTP 模式本身已经带 TUN 兜底**。Telegram 用的 MTProto 是自定义
+TCP 协议、不走系统 HTTP 代理，正属于"不支持的程序"，在 HTTP 模式下同样由
+TUN 接管、照常走代理，推送不受任何影响。而「None」会把本该绕开的系统服务
+也一并吃进隧道，这才是来电出问题的根源。
+
+配合本仓库的规则，三者同时成立：
+
+| 目标 | 手段 |
+| --- | --- |
+| Telegram / X 走代理、推送正常 | 代理类型 = HTTP（TUN 兜底），`telegram.list` → PROXY |
+| APNs 稳定、来电响铃 | `call-direct.list` 置顶 → DIRECT |
+| 系统服务不被强制入隧 | 关闭「包括所有网络」 |
+
+注意 `call-direct.list` 让 APNs 走直连**不会**影响 Telegram / X 的推送——
+推送走的正是这条直连的 APNs 通道，而 Telegram 自己的 MTProto 连接仍由
+`telegram.list` 送去代理，两者互不干扰。
+
+#### 模块
+
+Shadowrocket module URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-fix.sgmodule
+```
+
+已在使用 `personal-rules.module` 的话无需重复导入——该模块已在规则最前面
+引用了同一份规则集。单独导入 `call-fix.sgmodule` 时，请在「配置 > 模块 >
+右上角 `···` > 重新排序」中把它排到其他模块之前。
+
+模块做了三件事：
+
+1. 把运营商 IMS/VoWiFi（`3gppnetwork.org`、`epdg` 关键字、UDP 500/4500）、
+   APNs、iMessage/FaceTime 注册与媒体端口（UDP 16384–16403）全部置顶为 `DIRECT`。
+2. 设置 `udp-policy-not-supported-behaviour = DIRECT`。默认值 `REJECT` 会在节点
+   不支持 UDP 转发时直接掐断 VoIP 媒体流。代价是命中代理策略的 UDP（如 QUIC）
+   会以真实 IP 直连，介意者可删掉该行。
+3. 预留了 `tun-excluded-routes` 与 `[Host]` 两段配置（默认注释）。若关掉隧道
+   开关后 VoWiFi 仍不可用，再按模块内注释启用——ePDG 的 IP 段因运营商而异，
+   需要自行填入。
+
+规则集单独引用：
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-direct.list,DIRECT
+```
+
+#### 验证方法
+
+规则和开关都是猜测性修复，先用下面的步骤确认根因，避免白改：
+
+1. **设置 > 隧道 > 包括 APNs → 关**，再让对方重拨。绝大多数情况到此为止。
+2. 仍不通，**强制路由 → 关**。
+3. 仍不通，导入模块让 APNs 直连（同时解决 `apple.list` 把 APNs 送去代理的问题）。
+4. 仍不通，关闭「包括所有网络」总开关。
+5. 只有在用港澳台 / 境外卡且确认该运营商发布了 ePDG 的前提下，才需要启用模块里的
+   `tun-excluded-routes`。
+
+每一步之间留足时间让 APNs 重新建连（切一次飞行模式可加速），并注意
+**走 VoLTE 的蜂窝来电本就不受影响**，测试时应当用微信 / Telegram 等
+App 内语音来电来验证。
+
+### Google Voice
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list
+```
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
+```
+
+**必须放在 `GEOIP,CN` 之前**，`personal-rules.module` 中已如此排列。
+
+#### 收不到 Google Voice 通知的两层原因
+
+GV 的通知需要两条独立的链路同时成立，缺一不可：
+
+```text
+① GV 连上 Google 服务器（注册/刷新 APNs token、维持信令）—— 必须走代理
+② Google → Apple APNs → 你的设备 —— 必须直连且稳定
+```
+
+**第 ① 层：GEOIP 误判。** 若规则里没有显式的 Google 域名规则，
+`voice.google.com` 会一路落到 `GEOIP,CN`。而 GEOIP 必须先把域名解析成 IP
+才能判断归属地，国内 DNS 对 `google.com` 的解析结果是被污染的——判成 CN
+就走 DIRECT，直接撞墙。GV 连不上服务器，Google 根本不会发出那条推送。
+域名规则不依赖解析结果，是唯一可靠的解法。
+
+**第 ② 层：APNs 被塞进隧道。** 见上文 [Incoming Call Fix](#incoming-call-fix)，
+`设置 > 隧道 > 包括 APNs` 必须关闭。GV 的通知与微信、Telegram 的来电走的是
+同一条 APNs 通道，同一个开关同时影响它们。
+
+#### 其他注意事项
+
+* **节点建议固定在美国。** GV 对账号 IP 的地理位置敏感，落地国家频繁跳变
+  可能触发风控使会话失效。
+* 先排除非网络因素：iOS `设置 > 通知 > Google Voice` 是否允许通知、是否被
+  专注模式拦截、GV App 内 `设置 > 请勿打扰` 是否开启、以及 GV 内消息与来电的
+  通知开关是否分别打开。
+
+### Bybit
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list
+```
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list,PROXY
+```
+
+**必须放在 `GEOIP,CN` 之前**，`personal-rules.module` 中已如此排列。
+
+### 部分请求"命中 PROXY 规则却没走代理"
+
+同一现象通常有两个独立成因，两个都要处理。
+
+#### 成因一：请求根本没命中 PROXY 规则
+
+若某服务没有显式的域名规则，请求会一路落到 `GEOIP,CN`。GEOIP 必须先把域名
+本地解析成 IP 才能判定归属地，而地理感知 CDN 会按解析来源返回就近节点——
+配合国内 DNS 极易拿到被判为 CN 的地址，于是走 `DIRECT`。
+
+实测 Bybit 的入口正是这种结构：
+
+| 域名 | 落点 |
+| --- | --- |
+| `bybit.com` | CloudFront `18.160.x` |
+| `www.bybit.com` | Akamai `23.33.x` |
+| `api.bybit.com` | AWS `18.238.x` |
+
+同一个机制此前已经让 Google Voice 中招，见
+[Google Voice](#google-voice)。**解法是把域名规则显式写在 `GEOIP,CN` 之前**，
+按名匹配不依赖解析结果——与本仓库对国内域名的处理是同一套推理。
+
+#### 成因二：QUIC 绕过了代理
+
+`udp-policy-not-supported-behaviour = DIRECT` 会在节点不支持 UDP 转发时把
+UDP 流量回退为直连。该设置是为 VoIP 媒体流准备的，但网站的 HTTP/3 同样走
+QUIC（UDP 443），于是这些请求虽然命中了 `PROXY` 规则，最终却以真实 IP 直连。
+
+```text
+block-quic = all-proxy
+```
+
+`all-proxy` 只对走代理的连接阻断 QUIC，迫使其回落到 TCP 上的 HTTP/2 正常
+代理；直连连接不受干预，国内站点不受影响。已加入 `personal-rules.module`。
+
+#### 排查方法
+
+在 Shadowrocket 的 **数据 > 请求** 里筛选目标域名，逐条看策略列：
+
+* 显示 `DIRECT` 且命中规则为 `GEOIP,CN` → 成因一，补域名规则
+* 请求走的是 UDP/443 → 成因二，确认 `block-quic` 是否生效
+
+#### 关于节点地区
+
+Bybit 在韩国受监管施压，但**已确认的限制是 Google Play 的 App 安装**
+（2025-03 起，2026-07 扩大至 29 家交易所），网页与 Apple App Store 访问不受
+影响。iOS 上使用韩国节点目前无碍，后续若出现 IP 层限制再换区。
 
 ### Claude / Anthropic
 
