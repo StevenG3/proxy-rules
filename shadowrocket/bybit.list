@@ -1,0 +1,38 @@
+# NAME: Bybit
+# AUTHOR: Steven
+# UPDATED: 2026-08-09
+# DESCRIPTION: Bybit 交易所及其登录 / 风控依赖。
+#
+#              以 PROXY 引用，且必须放在 GEOIP,CN 之前：
+#                RULE-SET,<本文件 URL>,PROXY
+#
+#              为什么必须按域名匹配：
+#              Bybit 的入口分布在多个地理感知 CDN 上（实测 bybit.com 落在
+#              CloudFront 18.160.x，www.bybit.com 落在 Akamai 23.33.x）。
+#              GEOIP 规则要先把域名解析成 IP 才能判定归属地，而这类 CDN 会
+#              按解析来源返回就近节点，配合国内 DNS 极易得到被判为 CN 的地址，
+#              于是走 DIRECT —— 这正是"部分请求不走代理"的典型成因。
+#              域名规则不依赖解析结果，是唯一可靠的做法。
+#
+#              上游 blackmatrix7 的 Crypto.list 仅含一条 DOMAIN-SUFFIX,bybit.com，
+#              缺 bytick.com 等备用域名，故单独维护本表。
+
+# ── 主站 / API / WebSocket ─────────────────────────────────────────────
+# 覆盖 www、api、api2、stream 等全部子域
+DOMAIN-SUFFIX,bybit.com
+
+# 备用主域，承载独立的 api / stream 端点
+DOMAIN-SUFFIX,bytick.com
+
+# ── 其他官方域名 ───────────────────────────────────────────────────────
+DOMAIN-SUFFIX,bybitglobal.com
+DOMAIN-SUFFIX,bybit-exchange.com
+DOMAIN-SUFFIX,bybitpro.com
+DOMAIN-SUFFIX,byb.it
+DOMAIN-SUFFIX,bybit.nl
+DOMAIN-SUFFIX,bybit.kz
+
+# ── 登录 / 风控依赖 ────────────────────────────────────────────────────
+# Cloudflare Turnstile 人机验证。若走直连会被墙，表现为登录页转圈或验证
+# 始终不通过，而站点其余部分看似正常。
+DOMAIN,challenges.cloudflare.com

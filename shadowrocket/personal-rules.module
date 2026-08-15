@@ -7,6 +7,12 @@
 # UDP 命中不支持转发的节点时回退直连，避免 VoIP 媒体流被 REJECT 掐断。
 udp-policy-not-supported-behaviour = DIRECT
 
+# 上一行有个副作用：网站的 HTTP/3 走 QUIC（UDP 443），若节点不支持 UDP 转发，
+# 这些请求会按上述回退策略以真实 IP 直连 —— 即"命中了 PROXY 规则却没走代理"。
+# all-proxy 只对走代理的连接阻断 QUIC，迫使其回落到 TCP 上的 HTTP/2 正常代理；
+# 直连连接不受干预，因此不影响国内站点。
+block-quic = all-proxy
+
 [Rule]
 # ── 必须置顶 ───────────────────────────────────────────────────────────
 # 来电修复：运营商 IMS/VoWiFi、APNs 推送、iMessage/FaceTime 注册与媒体流
@@ -19,6 +25,7 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 # StevenG3/proxy-rules examples:
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/claude.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/telegram.list,PROXY
 

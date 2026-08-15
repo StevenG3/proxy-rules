@@ -221,6 +221,68 @@ GV 的通知需要两条独立的链路同时成立，缺一不可：
   专注模式拦截、GV App 内 `设置 > 请勿打扰` 是否开启、以及 GV 内消息与来电的
   通知开关是否分别打开。
 
+### Bybit
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list
+```
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list,PROXY
+```
+
+**必须放在 `GEOIP,CN` 之前**，`personal-rules.module` 中已如此排列。
+
+### 部分请求"命中 PROXY 规则却没走代理"
+
+同一现象通常有两个独立成因，两个都要处理。
+
+#### 成因一：请求根本没命中 PROXY 规则
+
+若某服务没有显式的域名规则，请求会一路落到 `GEOIP,CN`。GEOIP 必须先把域名
+本地解析成 IP 才能判定归属地，而地理感知 CDN 会按解析来源返回就近节点——
+配合国内 DNS 极易拿到被判为 CN 的地址，于是走 `DIRECT`。
+
+实测 Bybit 的入口正是这种结构：
+
+| 域名 | 落点 |
+| --- | --- |
+| `bybit.com` | CloudFront `18.160.x` |
+| `www.bybit.com` | Akamai `23.33.x` |
+| `api.bybit.com` | AWS `18.238.x` |
+
+同一个机制此前已经让 Google Voice 中招，见
+[Google Voice](#google-voice)。**解法是把域名规则显式写在 `GEOIP,CN` 之前**，
+按名匹配不依赖解析结果——与本仓库对国内域名的处理是同一套推理。
+
+#### 成因二：QUIC 绕过了代理
+
+`udp-policy-not-supported-behaviour = DIRECT` 会在节点不支持 UDP 转发时把
+UDP 流量回退为直连。该设置是为 VoIP 媒体流准备的，但网站的 HTTP/3 同样走
+QUIC（UDP 443），于是这些请求虽然命中了 `PROXY` 规则，最终却以真实 IP 直连。
+
+```text
+block-quic = all-proxy
+```
+
+`all-proxy` 只对走代理的连接阻断 QUIC，迫使其回落到 TCP 上的 HTTP/2 正常
+代理；直连连接不受干预，国内站点不受影响。已加入 `personal-rules.module`。
+
+#### 排查方法
+
+在 Shadowrocket 的 **数据 > 请求** 里筛选目标域名，逐条看策略列：
+
+* 显示 `DIRECT` 且命中规则为 `GEOIP,CN` → 成因一，补域名规则
+* 请求走的是 UDP/443 → 成因二，确认 `block-quic` 是否生效
+
+#### 关于节点地区
+
+Bybit 在韩国受监管施压，但**已确认的限制是 Google Play 的 App 安装**
+（2025-03 起，2026-07 扩大至 29 家交易所），网页与 Apple App Store 访问不受
+影响。iOS 上使用韩国节点目前无碍，后续若出现 IP 层限制再换区。
+
 ### Claude / Anthropic
 
 Raw URL:
