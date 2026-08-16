@@ -1,29 +1,33 @@
-# NAME: Claude / Anthropic / Claude Code
+# NAME: Claude 第三方依赖
 # AUTHOR: Steven
-# UPDATED: 2026-06-21
-# DESCRIPTION: Shadowrocket rule-set for Claude, Claude Code and Anthropic API.
+# UPDATED: 2026-08-16
+# DESCRIPTION: Claude 网页 / 客户端加载的通用第三方服务。
+#
+#              ⚠️ 本表**不含** Anthropic 自有域名（anthropic.com、claude.ai、
+#              claude.com、claudeusercontent.com）。那些由 us-apps.module
+#              独占并指向美国节点 LA-REALITY —— Anthropic 不接受部分亚太
+#              云厂商的 IP 段，必须美国出口。
+#
+#              两处都写会造成模块间策略冲突：本表以 PROXY 引用时指向首页
+#              选中的节点（日本），us-apps.module 指向 LA-REALITY，谁生效
+#              取决于模块排序，结果不可预期。故此处已移除，切勿加回。
+#
+#              保留这些第三方域名的显式 PROXY 规则，是为了避免它们落到
+#              GEOIP,CN 上——GEOIP 需先本地解析，结果可能被判为 CN 而走
+#              直连。人机验证类域名同时也在 us-apps.module 中，以 LA-REALITY
+#              优先，保证与 Claude 会话同源。
 
-DOMAIN-SUFFIX,anthropic.com
-DOMAIN-SUFFIX,claude.ai
-
-DOMAIN,api.anthropic.com
-DOMAIN,console.anthropic.com
-DOMAIN,auth.anthropic.com
-DOMAIN,oauth.anthropic.com
-
+# ── 统计 / 监控 ────────────────────────────────────────────────────────
 DOMAIN-SUFFIX,statsig.com
 DOMAIN-SUFFIX,statsigapi.net
 DOMAIN-SUFFIX,segment.io
 DOMAIN-SUFFIX,sentry.io
+DOMAIN-SUFFIX,cloudflareinsights.com
 
+# ── 客服 ───────────────────────────────────────────────────────────────
 DOMAIN-SUFFIX,intercom.io
 DOMAIN-SUFFIX,intercomcdn.com
 DOMAIN-SUFFIX,intercomassets.com
 
-DOMAIN-SUFFIX,arkoselabs.com
-DOMAIN-SUFFIX,funcaptcha.com
-DOMAIN-SUFFIX,hcaptcha.com
-DOMAIN-SUFFIX,hcaptcha.net
-
-DOMAIN-SUFFIX,cloudflareinsights.com
+# ── CDN ────────────────────────────────────────────────────────────────
 DOMAIN-SUFFIX,jsdelivr.net

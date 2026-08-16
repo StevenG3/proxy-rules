@@ -373,6 +373,21 @@ Bybit 在韩国受监管施压，但**已确认的限制是 Google Play 的 App 
 
 ### Claude / Anthropic
 
+**Anthropic 自有域名**（`anthropic.com`、`claude.ai`、`claude.com`、
+`claudeusercontent.com`）由 [US-Apps](#us-appstiktok--claude-走美国节点)
+独占并指向美国节点 `LA-REALITY`——Anthropic 不接受部分亚太云厂商的 IP 段。
+
+`claude.list` 只保留**通用第三方依赖**（统计 / 客服 / CDN），以 `PROXY`
+引用，走首页选中的节点即可。
+
+> ⚠️ 两处都写 Anthropic 域名会造成**模块间策略冲突**：`personal-rules.module`
+> 的 `claude.list,PROXY` 指向首页节点（日本），`us-apps.module` 指向
+> `LA-REALITY`，谁生效取决于模块列表排序，结果不可预期——表现为 Claude
+> 时好时坏或直接连不上。故已从 `claude.list` 中移除，切勿加回。
+
+保留第三方域名的显式 `PROXY` 规则，是为了避免它们落到 `GEOIP,CN` 上：GEOIP
+需先本地解析，结果可能被判为 CN 而走直连。
+
 Raw URL:
 
 ```text
