@@ -61,6 +61,35 @@ python3 tools/lookup-epdg.py 460-00 454-12   # 指定 MCC-MNC
 ⚠️ `pub.3gppnetwork.org` 配了通配记录，未发布 ePDG 的运营商会返回
 `127.0.0.1` 而非 NXDOMAIN。不要把它当成真实网关地址填进规则。
 
+#### ⚠️ 已知冲突模块：「苹果APNs推送」
+
+```text
+https://raw.githubusercontent.com/ttyyss2233/Tool/main/shadowrocket/mokuai/Apns.module
+```
+
+若模块列表中启用了这个模块，**必须关闭**——它与 `call-direct.list` 的策略
+完全相反，且使用的是同一批 APNs 网段：
+
+| 该模块 | `call-direct.list` |
+| --- | --- |
+| `DOMAIN-SUFFIX,push.apple.com,PROXY` | 同域名 `DIRECT` |
+| `IP-CIDR,17.57.144.0/22,PROXY` | 同网段 `DIRECT` |
+| `IP-CIDR,17.188.128.0/18,PROXY` | 同网段 `DIRECT` |
+| `IP-CIDR,17.188.20.0/23,PROXY` | 同网段 `DIRECT` |
+| `IP-CIDR6,2620:149:a44::/48,PROXY` | 同网段 `DIRECT` |
+
+更麻烦的是它的 `#!desc` 直接指示用户「到设置，隧道，打开包含所有网络，
+apns开关」。照做之后，APNs 在**系统层**被强制入隧、在**规则层**又被推去代理，
+长连接两头受夹，结果就是推送延迟或静默掉线——即来电不响铃且无未接记录、
+Google Voice 收不到通知。
+
+调整模块顺序**不足以**解决：隧道开关属于 iOS 系统层，在规则匹配之前生效，
+任何规则都盖不住，必须手动关闭。
+
+此外该模块含 `DOMAIN-SUFFIX,akadns.net,PROXY`。`akadns.net` 是 Akamai 的全球
+DNS 基础设施，被大量服务（含众多国内站点）使用，整体推向代理会拖慢本应直连
+的流量，粒度过粗。
+
 #### 设置 > 隧道
 
 这一页的每个开关都直接对应一个 iOS `NEVPNProtocol` 属性，在**规则匹配之前**
@@ -169,6 +198,8 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 
 规则和开关都是猜测性修复，先用下面的步骤确认根因，避免白改：
 
+0. 检查模块列表是否启用了
+   [「苹果APNs推送」](#️-已知冲突模块苹果apns推送)，有则关闭。
 1. **设置 > 隧道 > 包括 APNs → 关**，再让对方重拨。绝大多数情况到此为止。
 2. 仍不通，**强制路由 → 关**。
 3. 仍不通，导入模块让 APNs 直连（同时解决 `apple.list` 把 APNs 送去代理的问题）。
@@ -179,6 +210,63 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 每一步之间留足时间让 APNs 重新建连（切一次飞行模式可加速），并注意
 **走 VoLTE 的蜂窝来电本就不受影响**，测试时应当用微信 / Telegram 等
 App 内语音来电来验证。
+
+### US-Apps（TikTok / Claude 走美国节点）
+
+用于在不修改 `sr_top500_banlist_ad.conf` 的前提下，把 TikTok 与 Claude 定向到
+美国节点。共 44 条规则。
+
+**方式一：内联模块（推荐）**
+
+`shadowrocket/us-apps.module` — 模块页 `新建模块`，整段粘贴后保存。规则内嵌，
+导入即生效，无远程依赖。
+
+**方式二：远程规则集**
+
+```text
+DOMAIN-SUFFIX,ads-sg.tiktok.com,REJECT
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/us-apps.list,LA-REALITY
+```
+
+`us-apps.list` 不含策略名，故广告拦截那条必须单独写在 `RULE-SET` 之前。
+
+#### 规则来源
+
+| 仓库 | 采用情况 |
+| --- | --- |
+| blackmatrix7 `TikTok/TikTok.list` | 32 条，主干 |
+| ACL4SSR `Clash/Ruleset/TikTok.list` | 子集，仅 `DOMAIN-KEYWORD,tiktokcdn` 为独有 |
+| blackmatrix7 `Claude/Claude.list` | 仅 3 条 |
+| ACL4SSR `Clash/Ruleset/AI.list` | 补 `claude.com`、`claudeusercontent.com` 及关键字 |
+| Loyalsoldier `surge-rules` | **未发布 TikTok 规则集**（`ruleset/tiktok.txt` 与 `tiktok.txt` 均 404），未采用 |
+
+#### 与原 conf 的冲突
+
+全文扫描 `sr_top500_banlist_ad.conf` 后，仅一处冲突：
+
+```text
+第 1747 行  DOMAIN-SUFFIX,ads-sg.tiktok.com,Reject
+```
+
+模块规则优先于配置文件，`DOMAIN-SUFFIX,tiktok.com,LA-REALITY` 会把该广告
+域名一并接管，使拦截失效。模块已在最顶部重申 `REJECT` 抢回——规则自上而下
+匹配，置顶即生效。Claude / Anthropic 在原 conf 中无任何规则，零冲突。
+
+优先级判定：模块 > 配置文件；上 > 下；域名类 > IP 类；`GEOIP` 属推断类，
+排在显式规则之后；`FINAL` 恒在末尾。
+
+#### TikTok 的 IP 一致性
+
+1. **关闭 IPv6**：`点击配置文件的 ⓘ 图标 > 通用 > 启用IPv6 > 关闭`，
+   避免 IPv4 走美国节点而 IPv6 走直连的双栈泄漏。
+2. **DNS 无需额外设置**：命中代理策略的域名默认由代理服务器解析（「DNS 覆写
+   仅针对直连类域名进行解析，代理类域名将经由代理服务器进行解析」），本地既
+   拿不到也污染不了。规则没命中时才会泄漏，因此规则命中率才是关键。
+3. **固定节点**：`LA-REALITY` 不要放进 `url-test` / `fallback` 等自动测速
+   分组，会话中途更换出口 IP 极易触发美区风控。
+
+节点名必须与首页显示完全一致，否则规则静默失效（不报错，直接落回默认策略）。
+导入后在 `数据 > 请求` 中筛 `tiktok` 核对策略列。
 
 ### Google Voice
 

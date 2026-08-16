@@ -1,0 +1,94 @@
+#!name=US-Apps
+#!desc=TikTok / Claude 走美国节点 LA-REALITY，其余流量不受影响
+#!author=StevenG3
+#!homepage=https://github.com/StevenG3/proxy-rules
+
+# ─────────────────────────────────────────────────────────────────────
+# 规则来源（2026-08-15 拉取，脚本转换，非手写）：
+#   TikTok  blackmatrix7/ios_rule_script  rule/Shadowrocket/TikTok/TikTok.list
+#           ACL4SSR/ACL4SSR               Clash/Ruleset/TikTok.list（独有 1 条）
+#   Claude  blackmatrix7/ios_rule_script  rule/Shadowrocket/Claude/Claude.list
+#           ACL4SSR/ACL4SSR               Clash/Ruleset/AI.list
+#   Loyalsoldier/surge-rules 未发布 TikTok 规则集（已核实 404），故未采用。
+#
+# 策略名 LA-REALITY 必须与 Shadowrocket 首页节点名完全一致；改名或删除
+# 该节点会使规则静默失效（不报错，直接落回默认策略）。
+#
+# 该节点须固定选中，不要放进 url-test / fallback 等自动测速分组：
+# TikTok 会话中途更换出口 IP 极易触发美区风控。
+#
+# 本模块不含 FINAL，其余流量仍按原 conf 逻辑走首页选中的节点。
+# ─────────────────────────────────────────────────────────────────────
+
+[Rule]
+# ── 保留原 conf 的广告拦截（必须置顶）────────────────────────────────
+# sr_top500_banlist_ad.conf 第 1747 行有 DOMAIN-SUFFIX,ads-sg.tiktok.com,Reject。
+# 模块规则优先于配置文件，下面的 DOMAIN-SUFFIX,tiktok.com 会把它一并接管，
+# 使该广告域名不再被拦截。此处显式重申 REJECT 并置于最前以保留原行为。
+DOMAIN-SUFFIX,ads-sg.tiktok.com,REJECT
+
+# ── TikTok ───────────────────────────────────────────────────────────
+# 按需求全量走美国，DOMAIN-KEYWORD,tiktok 保持宽覆盖，不设任何排除项。
+DOMAIN,lf16-effectcdn.byteeffecttos-g.com,LA-REALITY
+DOMAIN,p16-tiktokcdn-com.akamaized.net,LA-REALITY
+DOMAIN-SUFFIX,bytedapm.com,LA-REALITY
+DOMAIN-SUFFIX,bytegecko-i18n.com,LA-REALITY
+DOMAIN-SUFFIX,byteintlapi.com,LA-REALITY
+DOMAIN-SUFFIX,byteoversea.com,LA-REALITY
+DOMAIN-SUFFIX,ibytedtos.com,LA-REALITY
+DOMAIN-SUFFIX,ibyteimg.com,LA-REALITY
+DOMAIN-SUFFIX,ipstatp.com,LA-REALITY
+DOMAIN-SUFFIX,isnssdk.com,LA-REALITY
+DOMAIN-SUFFIX,muscdn.com,LA-REALITY
+DOMAIN-SUFFIX,musical.ly,LA-REALITY
+DOMAIN-SUFFIX,sgpstatp.com,LA-REALITY
+DOMAIN-SUFFIX,snssdk.com,LA-REALITY
+DOMAIN-SUFFIX,tik-tokapi.com,LA-REALITY
+DOMAIN-SUFFIX,tiktok.com,LA-REALITY
+DOMAIN-SUFFIX,tiktokcdn-us.com,LA-REALITY
+DOMAIN-SUFFIX,tiktokcdn.com,LA-REALITY
+DOMAIN-SUFFIX,tiktokd.net,LA-REALITY
+DOMAIN-SUFFIX,tiktokd.org,LA-REALITY
+DOMAIN-SUFFIX,tiktokmusic.app,LA-REALITY
+DOMAIN-SUFFIX,tiktokv.com,LA-REALITY
+DOMAIN-SUFFIX,tiktokv.us,LA-REALITY
+DOMAIN-SUFFIX,ttwebview.com,LA-REALITY
+DOMAIN-KEYWORD,musical.ly,LA-REALITY
+DOMAIN-KEYWORD,tiktok,LA-REALITY
+USER-AGENT,TikTok*,LA-REALITY
+DOMAIN-KEYWORD,tiktokcdn,LA-REALITY
+
+# ── 其他 ByteDance 产品（上游 TikTok 表自带）─────────────────────────
+# 与 TikTok 美区登录无关，不使用可整段删除以免绕远增加延迟。
+DOMAIN,lf16-pkgcdn.pitaya-clientai.com,LA-REALITY
+DOMAIN,trae-api-sg.mchost.guru,LA-REALITY
+DOMAIN-SUFFIX,capcut.com,LA-REALITY
+DOMAIN-SUFFIX,marscode.com,LA-REALITY
+DOMAIN-SUFFIX,trae.ai,LA-REALITY
+
+# ── Claude / Anthropic 核心 ─────────────────────────────────────────
+DOMAIN-SUFFIX,anthropic.com,LA-REALITY
+DOMAIN-SUFFIX,claude.ai,LA-REALITY
+DOMAIN-SUFFIX,claude.com,LA-REALITY
+DOMAIN-SUFFIX,claudeusercontent.com,LA-REALITY
+DOMAIN-KEYWORD,anthropic,LA-REALITY
+DOMAIN-KEYWORD,claude,LA-REALITY
+
+# ── Claude 登录 / 人机验证 ───────────────────────────────────────────
+# 验证流程要求与会话同源 IP，走直连或他国节点可能导致验证不通过。
+DOMAIN-SUFFIX,hcaptcha.com,LA-REALITY
+DOMAIN-SUFFIX,hcaptcha.net,LA-REALITY
+DOMAIN-SUFFIX,arkoselabs.com,LA-REALITY
+DOMAIN-SUFFIX,funcaptcha.com,LA-REALITY
+
+# ── 通用第三方（默认停用）────────────────────────────────────────────
+# 这些域名被大量站点共用，并非 Anthropic 独有。全部指向 LA-REALITY 会让
+# 无关网站也绕行美国节点（224ms）。仅在 Claude 的统计 / 监控类请求失败时
+# 再逐条启用。
+# DOMAIN-SUFFIX,statsig.com,LA-REALITY
+# DOMAIN-SUFFIX,statsigapi.net,LA-REALITY
+# DOMAIN-SUFFIX,segment.io,LA-REALITY
+# DOMAIN-SUFFIX,sentry.io,LA-REALITY
+# DOMAIN-SUFFIX,cloudflareinsights.com,LA-REALITY
+# DOMAIN-SUFFIX,jsdelivr.net,LA-REALITY
+# DOMAIN,cdn.usefathom.com,LA-REALITY
