@@ -1,0 +1,67 @@
+# NAME: US Apps (TikTok / Claude)
+# AUTHOR: Steven
+# UPDATED: 2026-08-15
+# DESCRIPTION: 需要美国出口 IP 的服务。以美国节点名引用：
+#                RULE-SET,<本文件 URL>,LA-REALITY
+#
+#              注意本表不含 ads-sg.tiktok.com 的 REJECT，引用时需在
+#              RULE-SET 之前另加一行，否则原 conf 的广告拦截会被覆盖：
+#                DOMAIN-SUFFIX,ads-sg.tiktok.com,REJECT
+#
+# 规则来源（2026-08-15 拉取，脚本转换，非手写）：
+#   TikTok  blackmatrix7/ios_rule_script  rule/Shadowrocket/TikTok/TikTok.list
+#           ACL4SSR/ACL4SSR               Clash/Ruleset/TikTok.list（独有 1 条）
+#   Claude  blackmatrix7/ios_rule_script  rule/Shadowrocket/Claude/Claude.list
+#           ACL4SSR/ACL4SSR               Clash/Ruleset/AI.list
+#   Loyalsoldier/surge-rules 未发布 TikTok 规则集（已核实 404），故未采用。
+
+# ── TikTok ─────────────────────────────────────────────────────────────
+DOMAIN,lf16-effectcdn.byteeffecttos-g.com
+DOMAIN,p16-tiktokcdn-com.akamaized.net
+DOMAIN-SUFFIX,bytedapm.com
+DOMAIN-SUFFIX,bytegecko-i18n.com
+DOMAIN-SUFFIX,byteintlapi.com
+DOMAIN-SUFFIX,byteoversea.com
+DOMAIN-SUFFIX,ibytedtos.com
+DOMAIN-SUFFIX,ibyteimg.com
+DOMAIN-SUFFIX,ipstatp.com
+DOMAIN-SUFFIX,isnssdk.com
+DOMAIN-SUFFIX,muscdn.com
+DOMAIN-SUFFIX,musical.ly
+DOMAIN-SUFFIX,sgpstatp.com
+DOMAIN-SUFFIX,snssdk.com
+DOMAIN-SUFFIX,tik-tokapi.com
+DOMAIN-SUFFIX,tiktok.com
+DOMAIN-SUFFIX,tiktokcdn-us.com
+DOMAIN-SUFFIX,tiktokcdn.com
+DOMAIN-SUFFIX,tiktokd.net
+DOMAIN-SUFFIX,tiktokd.org
+DOMAIN-SUFFIX,tiktokmusic.app
+DOMAIN-SUFFIX,tiktokv.com
+DOMAIN-SUFFIX,tiktokv.us
+DOMAIN-SUFFIX,ttwebview.com
+DOMAIN-KEYWORD,musical.ly
+DOMAIN-KEYWORD,tiktok
+USER-AGENT,TikTok*
+DOMAIN-KEYWORD,tiktokcdn
+
+# ── 其他 ByteDance 产品（上游 TikTok 表自带）───────────────────────────
+DOMAIN,lf16-pkgcdn.pitaya-clientai.com
+DOMAIN,trae-api-sg.mchost.guru
+DOMAIN-SUFFIX,capcut.com
+DOMAIN-SUFFIX,marscode.com
+DOMAIN-SUFFIX,trae.ai
+
+# ── Claude / Anthropic ─────────────────────────────────────────────────
+DOMAIN-SUFFIX,anthropic.com
+DOMAIN-SUFFIX,claude.ai
+DOMAIN-SUFFIX,claude.com
+DOMAIN-SUFFIX,claudeusercontent.com
+DOMAIN-KEYWORD,anthropic
+DOMAIN-KEYWORD,claude
+
+# ── Claude 登录 / 人机验证 ─────────────────────────────────────────────
+DOMAIN-SUFFIX,hcaptcha.com
+DOMAIN-SUFFIX,hcaptcha.net
+DOMAIN-SUFFIX,arkoselabs.com
+DOMAIN-SUFFIX,funcaptcha.com

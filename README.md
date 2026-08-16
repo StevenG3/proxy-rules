@@ -211,6 +211,63 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 **走 VoLTE 的蜂窝来电本就不受影响**，测试时应当用微信 / Telegram 等
 App 内语音来电来验证。
 
+### US-Apps（TikTok / Claude 走美国节点）
+
+用于在不修改 `sr_top500_banlist_ad.conf` 的前提下，把 TikTok 与 Claude 定向到
+美国节点。共 44 条规则。
+
+**方式一：内联模块（推荐）**
+
+`shadowrocket/us-apps.module` — 模块页 `新建模块`，整段粘贴后保存。规则内嵌，
+导入即生效，无远程依赖。
+
+**方式二：远程规则集**
+
+```text
+DOMAIN-SUFFIX,ads-sg.tiktok.com,REJECT
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/us-apps.list,LA-REALITY
+```
+
+`us-apps.list` 不含策略名，故广告拦截那条必须单独写在 `RULE-SET` 之前。
+
+#### 规则来源
+
+| 仓库 | 采用情况 |
+| --- | --- |
+| blackmatrix7 `TikTok/TikTok.list` | 32 条，主干 |
+| ACL4SSR `Clash/Ruleset/TikTok.list` | 子集，仅 `DOMAIN-KEYWORD,tiktokcdn` 为独有 |
+| blackmatrix7 `Claude/Claude.list` | 仅 3 条 |
+| ACL4SSR `Clash/Ruleset/AI.list` | 补 `claude.com`、`claudeusercontent.com` 及关键字 |
+| Loyalsoldier `surge-rules` | **未发布 TikTok 规则集**（`ruleset/tiktok.txt` 与 `tiktok.txt` 均 404），未采用 |
+
+#### 与原 conf 的冲突
+
+全文扫描 `sr_top500_banlist_ad.conf` 后，仅一处冲突：
+
+```text
+第 1747 行  DOMAIN-SUFFIX,ads-sg.tiktok.com,Reject
+```
+
+模块规则优先于配置文件，`DOMAIN-SUFFIX,tiktok.com,LA-REALITY` 会把该广告
+域名一并接管，使拦截失效。模块已在最顶部重申 `REJECT` 抢回——规则自上而下
+匹配，置顶即生效。Claude / Anthropic 在原 conf 中无任何规则，零冲突。
+
+优先级判定：模块 > 配置文件；上 > 下；域名类 > IP 类；`GEOIP` 属推断类，
+排在显式规则之后；`FINAL` 恒在末尾。
+
+#### TikTok 的 IP 一致性
+
+1. **关闭 IPv6**：`点击配置文件的 ⓘ 图标 > 通用 > 启用IPv6 > 关闭`，
+   避免 IPv4 走美国节点而 IPv6 走直连的双栈泄漏。
+2. **DNS 无需额外设置**：命中代理策略的域名默认由代理服务器解析（「DNS 覆写
+   仅针对直连类域名进行解析，代理类域名将经由代理服务器进行解析」），本地既
+   拿不到也污染不了。规则没命中时才会泄漏，因此规则命中率才是关键。
+3. **固定节点**：`LA-REALITY` 不要放进 `url-test` / `fallback` 等自动测速
+   分组，会话中途更换出口 IP 极易触发美区风控。
+
+节点名必须与首页显示完全一致，否则规则静默失效（不报错，直接落回默认策略）。
+导入后在 `数据 > 请求` 中筛 `tiktok` 核对策略列。
+
 ### Google Voice
 
 Raw URL:
