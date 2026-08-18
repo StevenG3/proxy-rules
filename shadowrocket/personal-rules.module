@@ -48,7 +48,20 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 # ABOVE this line, or GEOIP,CN decides their fate using a polluted local lookup.
 # google-voice.list exists for exactly that reason — without it, voice.google.com
 # fell through to GEOIP,CN and could be sent DIRECT into the firewall.
-RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMax/ChinaMax_Domain.list,DIRECT
+
+# 哔哩哔哩：ChinaMax 未收录 bilivideo.cn，也不含 ourdvsss.com / ksyungslb.com
+# 等专用 CDN 域名。视频流走 bilivideo.com 与 hdslb.com 而非主站，漏掉这些会
+# 落到 GEOIP,CN 上按解析结果赌运气，判错即绕行代理，表现为播放卡顿。
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/BiliBili/BiliBili.list,DIRECT
+
+# ⚠️ 必须用 DOMAIN-SET 而非 RULE-SET。
+# ChinaMax_Domain.list 是纯域名表（每行形如 .bilibili.com，无规则类型前缀），
+# 全表 111592 行中带前缀的为 0 行。手册对两者的定义互斥：
+#   RULE-SET   规则集的组成部分需包含规则类型
+#   DOMAIN-SET 域名集的组成部分不包含规则类型
+# 误用 RULE-SET 时 Shadowrocket 无法解析表内条目，这 11 万条国内域名直连规则
+# 会静默失效（不报错），所有国内站点转而落到下方的 GEOIP,CN 上按解析结果判定。
+DOMAIN-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/ChinaMax/ChinaMax_Domain.list,DIRECT
 DOMAIN-SUFFIX,yspapp.cn,DIRECT
 GEOIP,CN,DIRECT
 FINAL,PROXY

@@ -309,6 +309,39 @@ GV 的通知需要两条独立的链路同时成立，缺一不可：
   专注模式拦截、GV App 内 `设置 > 请勿打扰` 是否开启、以及 GV 内消息与来电的
   通知开关是否分别打开。
 
+### ⚠️ RULE-SET 与 DOMAIN-SET 不可混用
+
+手册对两者的定义是互斥的：
+
+| 引用方式 | 规则集格式 |
+| --- | --- |
+| `RULE-SET` | 组成部分**需包含**规则类型，如 `DOMAIN-SUFFIX,example.com` |
+| `DOMAIN-SET` | 组成部分**不包含**规则类型，如 `.example.com` |
+
+用错时 Shadowrocket 无法解析表内条目，整个规则集**静默失效**——不报错、不
+提示，规则就像不存在一样，流量继续往下匹配。
+
+本仓库引用的外部规则集：
+
+| 规则集 | 格式 | 正确引用 |
+| --- | --- | --- |
+| `ChinaMax/ChinaMax_Domain.list` | 纯域名（111592 行，带前缀 0 行）| **`DOMAIN-SET`** |
+| `BiliBili/BiliBili.list` | 含规则类型 | `RULE-SET` |
+| 本仓库各 `.list` | 含规则类型 | `RULE-SET` |
+
+误用 `DOMAIN-SET` 引用 ChinaMax 曾导致 11 万条国内域名直连规则全部失效，所有
+国内站点转而落到 `GEOIP,CN` 上按本地解析结果判定。B 站是典型受害者：视频流走
+`bilivideo.com` 与 `hdslb.com` 而非主站，这些 CDN 的 IP 分布广，GEOIP 判错即
+绕行海外节点，表现为主站正常但播放卡顿。
+
+新增外部规则集前，先确认格式：
+
+```bash
+curl -s <URL> | grep -vE '^\s*#|^\s*$' | grep -cE '^(DOMAIN|IP-CIDR|DST-PORT)'
+```
+
+计数为 0 即为纯域名表，必须用 `DOMAIN-SET`。
+
 ### Bybit
 
 Raw URL:
