@@ -309,6 +309,46 @@ GV 的通知需要两条独立的链路同时成立，缺一不可：
   专注模式拦截、GV App 内 `设置 > 请勿打扰` 是否开启、以及 GV 内消息与来电的
   通知开关是否分别打开。
 
+### 通用诊断：某个服务「主体能用、某块功能空白」
+
+本仓库中 Google Voice、Bybit、Kraken 三次故障是同一个模式，先记在这里，
+下次遇到直接照做。
+
+**症状**：App 能登录、主要数据正常，但某一块内容始终加载不出来或转圈。
+
+**成因**：该功能依赖的域名没有任何显式规则，落到 `GEOIP,CN` 上。GEOIP 要先
+把域名本地解析成 IP 再判定归属地，而结果取决于 DNS 与 CDN 的地理调度：
+
+* 判为海外 → `FINAL,PROXY` → 通
+* 判为 CN → `DIRECT` → 撞墙
+
+同一个 App 的不同域名落在不同 IP 段，判定结果就可能不一致——于是出现「一半
+能用一半不能用」。Kraken 是最典型的例子：账户接口在 Cloudflare 的
+`104.17.185.205`，行情数据源 DXfeed 在 `162.159.134.42`，同为 Cloudflare
+却分属不同 anycast 段。
+
+**关键点**：出问题的往往是**第三方服务，域名与主站完全无关**。
+
+| 服务 | 主站 | 实际掉链子的域名 |
+| --- | --- | --- |
+| Kraken | `kraken.com` | `dxfeed.com`（图表数据源）|
+| Bybit | `bybit.com` | `challenges.cloudflare.com`（人机验证）|
+| Google Voice | `voice.google.com` | `googleapis.com`（信令与 token）|
+| 哔哩哔哩 | `bilibili.com` | `bilivideo.com`、`hdslb.com`（视频流）|
+
+**排查步骤**：
+
+1. 看 App 界面上的署名，例如「图表数据由 DXfeed 提供」——第三方数据源
+   通常会标注出来
+2. `数据 > 请求` 按时间倒序，在触发该功能时观察新出现的域名
+3. 对可疑域名 `nslookup` 看落在哪个 IP 段
+4. 把域名按名写进规则集，置于 `GEOIP,CN` 之前
+
+**为什么必须按域名而非依赖 GEOIP**：域名规则不需要解析即可匹配，结果确定；
+GEOIP 依赖本地解析，面对地理调度 CDN 与被污染的 DNS 时不可靠。本仓库对国内
+域名用 `DOMAIN-SET` 直连、对境外服务用 `RULE-SET` 代理，都是同一套推理的
+两个方向。
+
 ### ⚠️ RULE-SET 与 DOMAIN-SET 不可混用
 
 手册对两者的定义是互斥的：
@@ -341,6 +381,27 @@ curl -s <URL> | grep -vE '^\s*#|^\s*$' | grep -cE '^(DOMAIN|IP-CIDR|DST-PORT)'
 ```
 
 计数为 0 即为纯域名表，必须用 `DOMAIN-SET`。
+
+### Kraken
+
+Raw URL:
+
+```text
+https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/kraken.list
+```
+
+```text
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/kraken.list,PROXY
+```
+
+**必须放在 `GEOIP,CN` 之前**，`personal-rules.module` 中已如此排列。
+
+覆盖 Kraken 交易所、xStocks 代币化股票，以及**行情数据源 DXfeed**——图表由
+DXfeed 提供，域名与 `kraken.com` 无关，是「余额正常但图表空白」的直接原因，
+详见[通用诊断](#通用诊断某个服务主体能用某块功能空白)。
+
+上游 blackmatrix7 的 `Crypto.list` 仅含 `DOMAIN-SUFFIX,kraken.com`，不含
+DXfeed 与 xStocks。
 
 ### Bybit
 
