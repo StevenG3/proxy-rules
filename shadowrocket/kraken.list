@@ -1,0 +1,33 @@
+# NAME: Kraken
+# AUTHOR: Steven
+# UPDATED: 2026-08-18
+# DESCRIPTION: Kraken 交易所、xStocks 代币化股票，及其行情数据源 DXfeed。
+#
+#              以 PROXY 引用，且必须放在 GEOIP,CN 之前：
+#                RULE-SET,<本文件 URL>,PROXY
+#
+#              为什么行情图表会单独挂掉：
+#              Kraken 的图表数据由第三方 DXfeed 提供，域名不是 kraken.com，
+#              因此不会被任何 kraken 规则覆盖。两者又恰好落在 Cloudflare 的
+#              不同 anycast 段上（实测 kraken.com → 104.17.185.205，
+#              dxfeed.com → 162.159.134.42），GeoIP 库对这两段的判定并不一致：
+#              前者判为海外走了代理，后者一旦判为 CN 就走直连撞墙。
+#              于是表现为账户余额正常显示、行情图表始终加载不出来。
+#
+#              上游 blackmatrix7 的 Crypto.list 仅含 DOMAIN-SUFFIX,kraken.com，
+#              不含 DXfeed 与 xStocks，故单独维护本表。
+
+# ── Kraken 交易所 ──────────────────────────────────────────────────────
+# 覆盖 api、ws、ws-auth、futures、assets 等全部子域
+DOMAIN-SUFFIX,kraken.com
+DOMAIN-SUFFIX,kraken.co.uk
+DOMAIN-SUFFIX,krakenfx.com
+
+# ── xStocks 代币化股票 ─────────────────────────────────────────────────
+DOMAIN-SUFFIX,xstocks.com
+
+# ── DXfeed 行情数据源（图表的实际数据来源）─────────────────────────────
+DOMAIN-SUFFIX,dxfeed.com
+DOMAIN-SUFFIX,dxfeed.net
+DOMAIN-SUFFIX,dxfeed.org
+DOMAIN-SUFFIX,dxfeed.io

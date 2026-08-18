@@ -26,6 +26,7 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/google-voice.list,PROXY
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/bybit.list,PROXY
+RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/kraken.list,PROXY
 # claude.list 只含第三方依赖（统计/客服/CDN）。Anthropic 自有域名由
 # us-apps.module 独占并指向美国节点 —— 两处都写会造成模块间策略冲突，
 # 生效结果取决于模块排序。
