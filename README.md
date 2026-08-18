@@ -61,7 +61,40 @@ python3 tools/lookup-epdg.py 460-00 454-12   # 指定 MCC-MNC
 ⚠️ `pub.3gppnetwork.org` 配了通配记录，未发布 ePDG 的运营商会返回
 `127.0.0.1` 而非 NXDOMAIN。不要把它当成真实网关地址填进规则。
 
-#### ⚠️ 已知冲突模块：「苹果APNs推送」
+#### ⚠️ 已知冲突模块：「广告拦截&净化合集」的 B 站规则
+
+```text
+https://raw.githubusercontent.com/fmz200/wool_scripts/main/Surge/module/blockAds.module
+```
+
+该模块第 22-25 行 REJECT 了 B 站主 API 的**备用域名**：
+
+```text
+DOMAIN,api.biliapi.com,REJECT,pre-matching,extended-matching
+DOMAIN,app.biliapi.com,REJECT,pre-matching,extended-matching
+DOMAIN,api.biliapi.net,REJECT,pre-matching,extended-matching
+DOMAIN,app.biliapi.net,REJECT,pre-matching,extended-matching
+```
+
+B 站客户端会在 `api.bilibili.com` 与 `api.biliapi.net` 之间容灾轮询。整段
+REJECT 之后，轮询到备用域名的请求全部失败，症状具有迷惑性：
+
+| 功能 | 走的域名 | 结果 |
+| --- | --- | --- |
+| 视频播放 | `bilivideo.com` | ✅ 正常且快速 |
+| 视频信息、评论数 | `api.bilibili.com` | ✅ 正常 |
+| **评论列表** | 轮询到 `api.biliapi.net` | ❌ 卡在「正在玩命加载数据」 |
+
+看起来像 B 站自己的问题，实际是去广告规则误伤。
+
+**本仓库的处理**：`personal-rules.module` 顶部以 `DOMAIN` 精度显式放行这些
+域名。必须用 `DOMAIN` 而非 `DOMAIN-SUFFIX`——`BiliBili.list` 中的
+`DOMAIN-SUFFIX,biliapi.net` 精度低于对方的 `DOMAIN` 规则，Shadowrocket 编译时
+精确规则优先，**仅靠调整模块排序无法覆盖**。
+
+若上游模块日后调整规则，此处的放行是无害的冗余，可保留。
+
+### ⚠️ 已知冲突模块：「苹果APNs推送」
 
 ```text
 https://raw.githubusercontent.com/ttyyss2233/Tool/main/shadowrocket/mokuai/Apns.module

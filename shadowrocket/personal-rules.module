@@ -21,6 +21,27 @@ block-quic = all-proxy
 # 表现为来电不响铃且没有未接来电记录。
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/call-direct.list,DIRECT
 
+# ── 覆盖去广告模块对 B 站备用 API 的 REJECT（必须置顶）──────────────────
+# 「广告拦截&净化合集」(fmz200/wool_scripts blockAds.module) 第 22-25 行有：
+#   DOMAIN,api.biliapi.com,REJECT,pre-matching,extended-matching
+#   DOMAIN,app.biliapi.com,REJECT,pre-matching,extended-matching
+#   DOMAIN,api.biliapi.net,REJECT,pre-matching,extended-matching
+#   DOMAIN,app.biliapi.net,REJECT,pre-matching,extended-matching
+#
+# biliapi.com / biliapi.net 是 B 站主 API 的备用域名，客户端会在
+# api.bilibili.com 与 api.biliapi.net 之间容灾轮询。整段 REJECT 掉之后，
+# 轮询到备用域名的请求全部失败：视频信息走 api.bilibili.com 未受影响，
+# 因此视频照常播放、评论数也能显示，但评论列表卡在「正在玩命加载数据」。
+#
+# 必须用 DOMAIN 而非 DOMAIN-SUFFIX：BiliBili.list 中的
+# DOMAIN-SUFFIX,biliapi.net 精度低于对方的 DOMAIN 规则，编译时精确规则优先，
+# 仅靠模块排序无法覆盖，须以同等精度正面压制。
+DOMAIN,api.biliapi.com,DIRECT
+DOMAIN,app.biliapi.com,DIRECT
+DOMAIN,api.biliapi.net,DIRECT
+DOMAIN,app.biliapi.net,DIRECT
+DOMAIN,grpc.biliapi.net,DIRECT
+
 # Replace PROXY with the exact policy/group name used in your Shadowrocket config.
 # StevenG3/proxy-rules examples:
 RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocket/apple.list,PROXY
