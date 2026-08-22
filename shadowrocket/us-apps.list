@@ -1,6 +1,6 @@
-# NAME: US Apps (TikTok / Claude)
+# NAME: US Apps (TikTok / X / Claude)
 # AUTHOR: Steven
-# UPDATED: 2026-08-15
+# UPDATED: 2026-08-18
 # DESCRIPTION: 需要美国出口 IP 的服务。以美国节点名引用：
 #                RULE-SET,<本文件 URL>,LA-REALITY
 #
@@ -8,12 +8,12 @@
 #              RULE-SET 之前另加一行，否则原 conf 的广告拦截会被覆盖：
 #                DOMAIN-SUFFIX,ads-sg.tiktok.com,REJECT
 #
-# 规则来源（2026-08-15 拉取，脚本转换，非手写）：
+# 规则来源（2026-08-18 拉取，脚本转换，非手写）：
 #   TikTok  blackmatrix7/ios_rule_script  rule/Shadowrocket/TikTok/TikTok.list
 #           ACL4SSR/ACL4SSR               Clash/Ruleset/TikTok.list（独有 1 条）
+#   X       blackmatrix7/ios_rule_script  rule/Shadowrocket/Twitter/Twitter.list
 #   Claude  blackmatrix7/ios_rule_script  rule/Shadowrocket/Claude/Claude.list
 #           ACL4SSR/ACL4SSR               Clash/Ruleset/AI.list
-#   Loyalsoldier/surge-rules 未发布 TikTok 规则集（已核实 404），故未采用。
 
 # ── TikTok ─────────────────────────────────────────────────────────────
 DOMAIN,lf16-effectcdn.byteeffecttos-g.com
@@ -51,6 +51,41 @@ DOMAIN,trae-api-sg.mchost.guru
 DOMAIN-SUFFIX,capcut.com
 DOMAIN-SUFFIX,marscode.com
 DOMAIN-SUFFIX,trae.ai
+
+# ── X / Twitter ────────────────────────────────────────────────────────
+DOMAIN-SUFFIX,ads-twitter.com
+DOMAIN-SUFFIX,cms-twdigitalassets.com
+DOMAIN-SUFFIX,grok.com
+DOMAIN-SUFFIX,periscope.tv
+DOMAIN-SUFFIX,pscp.tv
+DOMAIN-SUFFIX,t.co
+DOMAIN-SUFFIX,tellapart.com
+DOMAIN-SUFFIX,tweetdeck.com
+DOMAIN-SUFFIX,twimg.co
+DOMAIN-SUFFIX,twimg.com
+DOMAIN-SUFFIX,twimg.org
+DOMAIN-SUFFIX,twitpic.com
+DOMAIN-SUFFIX,twitter.biz
+DOMAIN-SUFFIX,twitter.com
+DOMAIN-SUFFIX,twitter.jp
+DOMAIN-SUFFIX,twittercommunity.com
+DOMAIN-SUFFIX,twitterflightschool.com
+DOMAIN-SUFFIX,twitterinc.com
+DOMAIN-SUFFIX,twitteroauth.com
+DOMAIN-SUFFIX,twitterstat.us
+DOMAIN-SUFFIX,twtrdns.net
+DOMAIN-SUFFIX,twttr.com
+DOMAIN-SUFFIX,twttr.net
+DOMAIN-SUFFIX,twvid.com
+DOMAIN-SUFFIX,vine.co
+DOMAIN-SUFFIX,x.com
+DOMAIN-KEYWORD,twitter
+IP-CIDR,192.133.76.0/22,no-resolve
+IP-CIDR,199.59.148.0/22,no-resolve
+IP-CIDR,199.96.56.0/21,no-resolve
+IP-CIDR,202.160.128.0/22,no-resolve
+IP-CIDR,209.237.192.0/19,no-resolve
+IP-CIDR,69.195.160.0/19,no-resolve
 
 # ── Claude / Anthropic ─────────────────────────────────────────────────
 DOMAIN-SUFFIX,anthropic.com
