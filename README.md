@@ -244,10 +244,10 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 **走 VoLTE 的蜂窝来电本就不受影响**，测试时应当用微信 / Telegram 等
 App 内语音来电来验证。
 
-### US-Apps（TikTok / Claude 走美国节点）
+### US-Apps（TikTok / X / Claude 走美国节点）
 
-用于在不修改 `sr_top500_banlist_ad.conf` 的前提下，把 TikTok 与 Claude 定向到
-美国节点。共 44 条规则。
+用于在不修改 `sr_top500_banlist_ad.conf` 的前提下，把 TikTok、X/Twitter 与
+Claude 定向到美国节点。共 77 条规则。
 
 **方式一：内联模块（推荐）**
 
@@ -269,13 +269,14 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 | --- | --- |
 | blackmatrix7 `TikTok/TikTok.list` | 32 条，主干 |
 | ACL4SSR `Clash/Ruleset/TikTok.list` | 子集，仅 `DOMAIN-KEYWORD,tiktokcdn` 为独有 |
+| blackmatrix7 `Twitter/Twitter.list` | 33 条，含 `x.com`、`twimg.com` 媒体 CDN 及 6 个 IP 段 |
 | blackmatrix7 `Claude/Claude.list` | 仅 3 条 |
 | ACL4SSR `Clash/Ruleset/AI.list` | 补 `claude.com`、`claudeusercontent.com` 及关键字 |
 | Loyalsoldier `surge-rules` | **未发布 TikTok 规则集**（`ruleset/tiktok.txt` 与 `tiktok.txt` 均 404），未采用 |
 
 #### 与原 conf 的冲突
 
-全文扫描 `sr_top500_banlist_ad.conf` 后，仅一处冲突：
+**TikTok**：全文扫描 `sr_top500_banlist_ad.conf` 后，仅一处冲突：
 
 ```text
 第 1747 行  DOMAIN-SUFFIX,ads-sg.tiktok.com,Reject
@@ -285,8 +286,16 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
 域名一并接管，使拦截失效。模块已在最顶部重申 `REJECT` 抢回——规则自上而下
 匹配，置顶即生效。Claude / Anthropic 在原 conf 中无任何规则，零冲突。
 
+**X/Twitter**：conf 中有 11 条 Twitter 域名规则（`twitter.com`、`twimg.com`、
+`t.co`、`pscp.tv` 等），策略均为 `Proxy`（首页节点，日本）。模块规则优先于
+配置文件，本模块直接覆盖；conf 中无 Twitter 相关 `Reject`，无需保留任何拦截。
+另已核对「广告拦截&净化合集」与 `personal-rules.module`，两者均无 Twitter 规则。
+
 优先级判定：模块 > 配置文件；上 > 下；域名类 > IP 类；`GEOIP` 属推断类，
 排在显式规则之后；`FINAL` 恒在末尾。
+
+> 冲突扫描须覆盖**所有已启用模块**，而不只是被点名的配置文件——Claude 曾因
+> 只扫 conf、漏查 `personal-rules.module` 而出现模块间策略冲突。
 
 #### TikTok 的 IP 一致性
 
@@ -296,7 +305,7 @@ RULE-SET,https://raw.githubusercontent.com/StevenG3/proxy-rules/main/shadowrocke
    仅针对直连类域名进行解析，代理类域名将经由代理服务器进行解析」），本地既
    拿不到也污染不了。规则没命中时才会泄漏，因此规则命中率才是关键。
 3. **固定节点**：`LA-REALITY` 不要放进 `url-test` / `fallback` 等自动测速
-   分组，会话中途更换出口 IP 极易触发美区风控。
+   分组，会话中途更换出口 IP 极易触发风控。X/Twitter 同理。
 
 节点名必须与首页显示完全一致，否则规则静默失效（不报错，直接落回默认策略）。
 导入后在 `数据 > 请求` 中筛 `tiktok` 核对策略列。

@@ -1,12 +1,13 @@
 #!name=US-Apps
-#!desc=TikTok / Claude 走美国节点 LA-REALITY，其余流量不受影响
+#!desc=TikTok / X / Claude 走美国节点 LA-REALITY，其余流量不受影响
 #!author=StevenG3
 #!homepage=https://github.com/StevenG3/proxy-rules
 
 # ─────────────────────────────────────────────────────────────────────
-# 规则来源（2026-08-15 拉取，脚本转换，非手写）：
+# 规则来源（2026-08-18 拉取，脚本转换，非手写）：
 #   TikTok  blackmatrix7/ios_rule_script  rule/Shadowrocket/TikTok/TikTok.list
 #           ACL4SSR/ACL4SSR               Clash/Ruleset/TikTok.list（独有 1 条）
+#   X       blackmatrix7/ios_rule_script  rule/Shadowrocket/Twitter/Twitter.list
 #   Claude  blackmatrix7/ios_rule_script  rule/Shadowrocket/Claude/Claude.list
 #           ACL4SSR/ACL4SSR               Clash/Ruleset/AI.list
 #   Loyalsoldier/surge-rules 未发布 TikTok 规则集（已核实 404），故未采用。
@@ -15,7 +16,7 @@
 # 该节点会使规则静默失效（不报错，直接落回默认策略）。
 #
 # 该节点须固定选中，不要放进 url-test / fallback 等自动测速分组：
-# TikTok 会话中途更换出口 IP 极易触发美区风控。
+# TikTok 与 X 的会话中途更换出口 IP 极易触发风控。
 #
 # 本模块不含 FINAL，其余流量仍按原 conf 逻辑走首页选中的节点。
 # ─────────────────────────────────────────────────────────────────────
@@ -65,6 +66,45 @@ DOMAIN,trae-api-sg.mchost.guru,LA-REALITY
 DOMAIN-SUFFIX,capcut.com,LA-REALITY
 DOMAIN-SUFFIX,marscode.com,LA-REALITY
 DOMAIN-SUFFIX,trae.ai,LA-REALITY
+
+# ── X / Twitter ──────────────────────────────────────────────────────
+# 按需求全量走美国，与 TikTok 一致，DOMAIN-KEYWORD,twitter 保持宽覆盖。
+# 上游 conf 第 16463/19844/19992/20603/21060/21085/21086/21108 行等共 11 条
+# Twitter 域名策略为 Proxy（首页节点，日本）。模块规则优先于配置文件，
+# 以下规则会直接覆盖它们；conf 中无 REJECT 条目，无需保留任何拦截。
+DOMAIN-SUFFIX,ads-twitter.com,LA-REALITY
+DOMAIN-SUFFIX,cms-twdigitalassets.com,LA-REALITY
+DOMAIN-SUFFIX,grok.com,LA-REALITY
+DOMAIN-SUFFIX,periscope.tv,LA-REALITY
+DOMAIN-SUFFIX,pscp.tv,LA-REALITY
+DOMAIN-SUFFIX,t.co,LA-REALITY
+DOMAIN-SUFFIX,tellapart.com,LA-REALITY
+DOMAIN-SUFFIX,tweetdeck.com,LA-REALITY
+DOMAIN-SUFFIX,twimg.co,LA-REALITY
+DOMAIN-SUFFIX,twimg.com,LA-REALITY
+DOMAIN-SUFFIX,twimg.org,LA-REALITY
+DOMAIN-SUFFIX,twitpic.com,LA-REALITY
+DOMAIN-SUFFIX,twitter.biz,LA-REALITY
+DOMAIN-SUFFIX,twitter.com,LA-REALITY
+DOMAIN-SUFFIX,twitter.jp,LA-REALITY
+DOMAIN-SUFFIX,twittercommunity.com,LA-REALITY
+DOMAIN-SUFFIX,twitterflightschool.com,LA-REALITY
+DOMAIN-SUFFIX,twitterinc.com,LA-REALITY
+DOMAIN-SUFFIX,twitteroauth.com,LA-REALITY
+DOMAIN-SUFFIX,twitterstat.us,LA-REALITY
+DOMAIN-SUFFIX,twtrdns.net,LA-REALITY
+DOMAIN-SUFFIX,twttr.com,LA-REALITY
+DOMAIN-SUFFIX,twttr.net,LA-REALITY
+DOMAIN-SUFFIX,twvid.com,LA-REALITY
+DOMAIN-SUFFIX,vine.co,LA-REALITY
+DOMAIN-SUFFIX,x.com,LA-REALITY
+DOMAIN-KEYWORD,twitter,LA-REALITY
+IP-CIDR,192.133.76.0/22,no-resolve,LA-REALITY
+IP-CIDR,199.59.148.0/22,no-resolve,LA-REALITY
+IP-CIDR,199.96.56.0/21,no-resolve,LA-REALITY
+IP-CIDR,202.160.128.0/22,no-resolve,LA-REALITY
+IP-CIDR,209.237.192.0/19,no-resolve,LA-REALITY
+IP-CIDR,69.195.160.0/19,no-resolve,LA-REALITY
 
 # ── Claude / Anthropic 核心 ─────────────────────────────────────────
 DOMAIN-SUFFIX,anthropic.com,LA-REALITY
